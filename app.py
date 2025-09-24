@@ -1,24 +1,52 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user, UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date, timedelta
 import os
 import json
 from collections import defaultdict
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['SECRET_KEY'] = 'your-secret-key-here-change-in-production'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///attendance.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'info'
 
 # Database Models
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(120), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    semesters = db.relationship('Semester', backref='user', lazy=True, cascade='all, delete-orphan')
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
 class Semester(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     subjects = db.relationship('Subject', backref='semester', lazy=True, cascade='all, delete-orphan')
 
 class Subject(db.Model):
@@ -109,11 +137,67 @@ def calculate_lectures_needed(subject_id, target_percentage=75):
         "current_percentage": round(current_percentage, 2)
     }
 
+# Authentication Routes
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        user = User.query.filter_by(username=username).first()
+        
+        if user and user.check_password(password):
+            login_user(user)
+            next_page = request.args.get('next')
+            flash('Logged in successfully!', 'success')
+            return redirect(next_page or url_for('index'))
+        else:
+            flash('Invalid username or password', 'error')
+    
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        
+        # Check if user already exists
+        if User.query.filter_by(username=username).first():
+            flash('Username already exists', 'error')
+            return render_template('register.html')
+        
+        if User.query.filter_by(email=email).first():
+            flash('Email already registered', 'error')
+            return render_template('register.html')
+        
+        # Create new user
+        user = User(username=username, email=email)
+        user.set_password(password)
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        login_user(user)
+        flash('Registration successful! Welcome to Attendance Tracker!', 'success')
+        return redirect(url_for('index'))
+    
+    return render_template('register.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Logged out successfully', 'info')
+    return redirect(url_for('login'))
+
 # Routes
 @app.route('/')
+@login_required
 def index():
     """Dashboard showing overview of attendance"""
-    active_semester = Semester.query.filter_by(is_active=True).first()
+    active_semester = Semester.query.filter_by(is_active=True, user_id=current_user.id).first()
     if not active_semester:
         return redirect(url_for('manage_semesters'))
     
@@ -139,24 +223,27 @@ def index():
                          semester=active_semester)
 
 @app.route('/semesters')
+@login_required
 def manage_semesters():
     """Manage semesters"""
-    semesters = Semester.query.all()
+    semesters = Semester.query.filter_by(user_id=current_user.id).all()
     return render_template('semesters.html', semesters=semesters)
 
 @app.route('/add_semester', methods=['GET', 'POST'])
+@login_required
 def add_semester():
     """Add a new semester"""
     if request.method == 'POST':
         # Deactivate all other semesters if this is set as active
         if request.form.get('is_active'):
-            Semester.query.update({'is_active': False})
+            Semester.query.filter_by(user_id=current_user.id).update({'is_active': False})
         
         semester = Semester(
             name=request.form['name'],
             start_date=datetime.strptime(request.form['start_date'], '%Y-%m-%d').date(),
             end_date=datetime.strptime(request.form['end_date'], '%Y-%m-%d').date(),
-            is_active=bool(request.form.get('is_active'))
+            is_active=bool(request.form.get('is_active')),
+            user_id=current_user.id
         )
         
         db.session.add(semester)
@@ -167,19 +254,21 @@ def add_semester():
     return render_template('add_semester.html')
 
 @app.route('/activate_semester/<int:semester_id>')
+@login_required
 def activate_semester(semester_id):
     """Activate a semester and deactivate others"""
-    Semester.query.update({'is_active': False})
-    semester = Semester.query.get_or_404(semester_id)
+    Semester.query.filter_by(user_id=current_user.id).update({'is_active': False})
+    semester = Semester.query.filter_by(id=semester_id, user_id=current_user.id).first_or_404()
     semester.is_active = True
     db.session.commit()
     flash(f'Semester "{semester.name}" activated!', 'success')
     return redirect(url_for('manage_semesters'))
 
 @app.route('/subjects')
+@login_required
 def manage_subjects():
     """Manage subjects for active semester"""
-    active_semester = Semester.query.filter_by(is_active=True).first()
+    active_semester = Semester.query.filter_by(is_active=True, user_id=current_user.id).first()
     if not active_semester:
         flash('Please create and activate a semester first.', 'warning')
         return redirect(url_for('manage_semesters'))
@@ -188,9 +277,10 @@ def manage_subjects():
     return render_template('subjects.html', subjects=subjects, semester=active_semester)
 
 @app.route('/add_subject', methods=['GET', 'POST'])
+@login_required
 def add_subject():
     """Add a new subject"""
-    active_semester = Semester.query.filter_by(is_active=True).first()
+    active_semester = Semester.query.filter_by(is_active=True, user_id=current_user.id).first()
     if not active_semester:
         flash('Please create and activate a semester first.', 'warning')
         return redirect(url_for('manage_semesters'))
@@ -212,9 +302,13 @@ def add_subject():
     return render_template('add_subject.html', semester=active_semester)
 
 @app.route('/edit_subject/<int:subject_id>', methods=['GET', 'POST'])
+@login_required
 def edit_subject(subject_id):
     """Edit an existing subject"""
-    subject = Subject.query.get_or_404(subject_id)
+    subject = Subject.query.join(Semester).filter(
+        Subject.id == subject_id,
+        Semester.user_id == current_user.id
+    ).first_or_404()
     
     if request.method == 'POST':
         subject.name = request.form['name']
@@ -229,18 +323,23 @@ def edit_subject(subject_id):
     return render_template('edit_subject.html', subject=subject)
 
 @app.route('/delete_subject/<int:subject_id>')
+@login_required
 def delete_subject(subject_id):
     """Delete a subject"""
-    subject = Subject.query.get_or_404(subject_id)
+    subject = Subject.query.join(Semester).filter(
+        Subject.id == subject_id,
+        Semester.user_id == current_user.id
+    ).first_or_404()
     db.session.delete(subject)
     db.session.commit()
     flash('Subject deleted successfully!', 'success')
     return redirect(url_for('manage_subjects'))
 
 @app.route('/timetable')
+@login_required
 def view_timetable():
     """View and manage timetable"""
-    active_semester = Semester.query.filter_by(is_active=True).first()
+    active_semester = Semester.query.filter_by(is_active=True, user_id=current_user.id).first()
     if not active_semester:
         flash('Please create and activate a semester first.', 'warning')
         return redirect(url_for('manage_semesters'))
@@ -269,10 +368,16 @@ def view_timetable():
                          semester=active_semester)
 
 @app.route('/add_timetable_slot', methods=['POST'])
+@login_required
 def add_timetable_slot():
     """Add a timetable slot for a subject"""
+    # Verify the subject belongs to the current user
+    subject = Subject.query.join(Semester).filter(
+        Subject.id == int(request.form['subject_id']),
+        Semester.user_id == current_user.id
+    ).first_or_404()
     slot = TimetableSlot(
-        subject_id=int(request.form['subject_id']),
+        subject_id=subject.id,
         day_of_week=int(request.form['day_of_week']),
         start_time=datetime.strptime(request.form['start_time'], '%H:%M').time(),
         end_time=datetime.strptime(request.form['end_time'], '%H:%M').time(),
@@ -285,18 +390,23 @@ def add_timetable_slot():
     return redirect(url_for('view_timetable'))
 
 @app.route('/delete_timetable_slot/<int:slot_id>')
+@login_required
 def delete_timetable_slot(slot_id):
     """Delete a timetable slot"""
-    slot = TimetableSlot.query.get_or_404(slot_id)
+    slot = TimetableSlot.query.join(Subject).join(Semester).filter(
+        TimetableSlot.id == slot_id,
+        Semester.user_id == current_user.id
+    ).first_or_404()
     db.session.delete(slot)
     db.session.commit()
     flash('Timetable slot deleted successfully!', 'success')
     return redirect(url_for('view_timetable'))
 
 @app.route('/attendance')
+@login_required
 def mark_attendance():
     """Mark daily attendance"""
-    active_semester = Semester.query.filter_by(is_active=True).first()
+    active_semester = Semester.query.filter_by(is_active=True, user_id=current_user.id).first()
     if not active_semester:
         flash('Please create and activate a semester first.', 'warning')
         return redirect(url_for('manage_semesters'))
@@ -322,12 +432,22 @@ def mark_attendance():
                          semester=active_semester)
 
 @app.route('/save_attendance', methods=['POST'])
+@login_required
 def save_attendance():
     """Save attendance records for a specific date"""
     selected_date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
     
     for subject_id in request.form.getlist('subject_ids'):
         subject_id = int(subject_id)
+        
+        # Verify the subject belongs to the current user
+        subject = Subject.query.join(Semester).filter(
+            Subject.id == subject_id,
+            Semester.user_id == current_user.id
+        ).first()
+        
+        if not subject:
+            continue  # Skip if subject doesn't belong to user
         attended = f'attended_{subject_id}' in request.form
         notes = request.form.get(f'notes_{subject_id}', '')
         
@@ -354,9 +474,10 @@ def save_attendance():
     return redirect(url_for('mark_attendance', date=selected_date.strftime('%Y-%m-%d')))
 
 @app.route('/attendance_report')
+@login_required
 def attendance_report():
     """View detailed attendance report"""
-    active_semester = Semester.query.filter_by(is_active=True).first()
+    active_semester = Semester.query.filter_by(is_active=True, user_id=current_user.id).first()
     if not active_semester:
         flash('Please create and activate a semester first.', 'warning')
         return redirect(url_for('manage_semesters'))
@@ -386,9 +507,10 @@ def attendance_report():
                          semester=active_semester)
 
 @app.route('/api/attendance_data')
+@login_required
 def api_attendance_data():
     """API endpoint for attendance data (for charts/graphs)"""
-    active_semester = Semester.query.filter_by(is_active=True).first()
+    active_semester = Semester.query.filter_by(is_active=True, user_id=current_user.id).first()
     if not active_semester:
         return jsonify({'error': 'No active semester'})
     
