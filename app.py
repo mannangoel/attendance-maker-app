@@ -411,4 +411,8 @@ def api_attendance_data():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True, port=5001)
+    # Get port from environment variable or default to 5001
+    port = int(os.environ.get('PORT', 5001))
+    # Use 0.0.0.0 for deployment, localhost for local development
+    host = '0.0.0.0' if os.environ.get('PORT') else '127.0.0.1'
+    app.run(debug=True, host=host, port=port)
