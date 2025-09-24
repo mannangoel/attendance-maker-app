@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Semesters - Student Attendance Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i class="bi bi-calendar3 me-2"></i>
+                Manage Semesters
+            </h1>
+            <a href="{{ url_for('add_semester') }}" class="btn btn-primary">
+                <i class="bi bi-plus me-1"></i>Add Semester
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if not semesters %}
+    <div class="alert alert-info">
+        <h4 class="alert-heading">No Semesters Created</h4>
+        <p>Start by <a href="{{ url_for('add_semester') }}" class="alert-link">creating your first semester</a>.</p>
+    </div>
+{% else %}
+    <div class="row">
+        {% for semester in semesters %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 {{ 'border-primary' if semester.is_active else '' }}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="card-title mb-0">{{ semester.name }}</h6>
+                    {% if semester.is_active %}
+                        <span class="badge bg-success">Active</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <small class="text-muted">Start Date:</small>
+                        <div>{{ semester.start_date.strftime('%B %d, %Y') }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">End Date:</small>
+                        <div>{{ semester.end_date.strftime('%B %d, %Y') }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted">Subjects:</small>
+                        <div>{{ semester.subjects|length }} subject(s)</div>
+                    </div>
+                    
+                    {% if not semester.is_active %}
+                        <div class="d-grid">
+                            <a href="{{ url_for('activate_semester', semester_id=semester.id) }}" 
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-play-circle me-1"></i>Activate
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-success py-2 mb-0">
+                            <small>
+                                <i class="bi bi-check-circle me-1"></i>
+                                Currently active semester
+                            </small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Report - Student Attendance Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i class="bi bi-graph-up me-2"></i>
+                Attendance Report
+            </h1>
+            {% if semester %}
+                <span class="badge bg-primary fs-6">{{ semester.name }}</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if not report_data %}
+    <div class="alert alert-info">
+        <h4 class="alert-heading">No Data Available</h4>
+        <p>Start <a href="{{ url_for('mark_attendance') }}" class="alert-link">marking attendance</a> to see your report.</p>
+    </div>
+{% else %}
+    <!-- Overall Summary -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">Overall Attendance</h4>
+                            <h2 class="mb-0">{{ aggregate_attendance }}%</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-graph-up fs-1"></i>
+                        </div>
+                    </div>
+                    <small class="text-white-50">
+                        {% if aggregate_attendance >= 75 %}
+                            Above target (75%)
+                        {% else %}
+                            Below target (75%)
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">Subjects Above 75%</h4>
+                            <h2 class="mb-0">{{ report_data | selectattr('attendance_percentage', '>=', 75) | list | length }}</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-check-circle fs-1"></i>
+                        </div>
+                    </div>
+                    <small class="text-white-50">Out of {{ report_data | length }} subjects</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">Needs Attention</h4>
+                            <h2 class="mb-0">{{ report_data | selectattr('attendance_percentage', '<', 75) | list | length }}</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-exclamation-triangle fs-1"></i>
+                        </div>
+                    </div>
+                    <small class="text-white-50">Subjects below 75%</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subject-wise Report -->
+    <div class="row">
+        {% for subject_data in report_data %}
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title mb-0">{{ subject_data.subject.name }}</h6>
+                        <small class="text-muted">{{ subject_data.subject.code }}</small>
+                    </div>
+                    <span class="badge {{ 'bg-success' if subject_data.attendance_percentage >= 75 else 'bg-warning' if subject_data.attendance_percentage >= 65 else 'bg-danger' }} fs-6">
+                        {{ subject_data.attendance_percentage }}%
+                    </span>
+                </div>
+                <div class="card-body">
+                    <!-- Progress Bar -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small>Attendance Progress</small>
+                            <small>{{ subject_data.attended_lectures }}/{{ subject_data.total_lectures }}</small>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar {{ 'bg-success' if subject_data.attendance_percentage >= 75 else 'bg-warning' if subject_data.attendance_percentage >= 65 else 'bg-danger' }}" 
+                                 style="width: {{ subject_data.attendance_percentage }}%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Statistics -->
+                    <div class="row text-center mb-3">
+                        <div class="col-4">
+                            <div class="border-end">
+                                <h6 class="text-success mb-0">{{ subject_data.attended_lectures }}</h6>
+                                <small class="text-muted">Present</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border-end">
+                                <h6 class="text-danger mb-0">{{ subject_data.total_lectures - subject_data.attended_lectures }}</h6>
+                                <small class="text-muted">Absent</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <h6 class="text-primary mb-0">{{ subject_data.subject.credits }}</h6>
+                            <small class="text-muted">Credits</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Guidance -->
+                    <div class="guidance-section">
+                        {% if subject_data.guidance.current_percentage < 75 %}
+                            <div class="alert alert-warning py-2">
+                                <small>
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    <strong>Action Needed:</strong> Attend {{ subject_data.guidance.lectures_to_attend }} more lecture(s) to reach 75%
+                                </small>
+                            </div>
+                        {% else %}
+                            {% if subject_data.guidance.lectures_can_miss > 0 %}
+                                <div class="alert alert-success py-2">
+                                    <small>
+                                        <i class="bi bi-check-circle me-1"></i>
+                                        <strong>Good Job!</strong> You can miss {{ subject_data.guidance.lectures_can_miss }} more lecture(s) and still maintain 75%
+                                    </small>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info py-2">
+                                    <small>
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        <strong>Maintain:</strong> Keep attending to maintain 75%
+                                    </small>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Recent Attendance (Last 5 records) -->
+                    {% if subject_data.records %}
+                        <div class="mt-3">
+                            <small class="text-muted d-block mb-2">Recent Attendance:</small>
+                            <div class="d-flex flex-wrap gap-1">
+                                {% for record in subject_data.records[:5] %}
+                                    <span class="badge {{ 'bg-success' if record.attended else 'bg-danger' }}" 
+                                          title="{{ record.date.strftime('%Y-%m-%d') }}{% if record.notes %} - {{ record.notes }}{% endif %}">
+                                        {{ record.date.strftime('%m/%d') }}
+                                    </span>
+                                {% endfor %}
+                                {% if subject_data.records | length > 5 %}
+                                    <span class="badge bg-secondary">+{{ subject_data.records | length - 5 }} more</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Detailed Table -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-table me-2"></i>
+                        Detailed Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Code</th>
+                                    <th>Credits</th>
+                                    <th>Total Lectures</th>
+                                    <th>Attended</th>
+                                    <th>Missed</th>
+                                    <th>Attendance %</th>
+                                    <th>Status</th>
+                                    <th>Action Required</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for subject_data in report_data %}
+                                <tr>
+                                    <td>{{ subject_data.subject.name }}</td>
+                                    <td>{{ subject_data.subject.code }}</td>
+                                    <td>{{ subject_data.subject.credits }}</td>
+                                    <td>{{ subject_data.total_lectures }}</td>
+                                    <td class="text-success">{{ subject_data.attended_lectures }}</td>
+                                    <td class="text-danger">{{ subject_data.total_lectures - subject_data.attended_lectures }}</td>
+                                    <td>
+                                        <span class="badge {{ 'bg-success' if subject_data.attendance_percentage >= 75 else 'bg-warning' if subject_data.attendance_percentage >= 65 else 'bg-danger' }}">
+                                            {{ subject_data.attendance_percentage }}%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if subject_data.attendance_percentage >= 75 %}
+                                            <i class="bi bi-check-circle text-success"></i> Good
+                                        {% elif subject_data.attendance_percentage >= 65 %}
+                                            <i class="bi bi-exclamation-triangle text-warning"></i> Warning
+                                        {% else %}
+                                            <i class="bi bi-x-circle text-danger"></i> Critical
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if subject_data.guidance.current_percentage < 75 %}
+                                            <small class="text-danger">Attend {{ subject_data.guidance.lectures_to_attend }} more</small>
+                                        {% else %}
+                                            {% if subject_data.guidance.lectures_can_miss > 0 %}
+                                                <small class="text-success">Can miss {{ subject_data.guidance.lectures_can_miss }}</small>
+                                            {% else %}
+                                                <small class="text-info">Maintain current</small>
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

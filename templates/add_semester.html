@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Add Semester - Student Attendance Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Add New Semester
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Semester Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" required
+                               placeholder="e.g., Fall 2024, Spring 2025">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="start_date" class="form-label">Start Date *</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="end_date" class="form-label">End Date *</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                            <label class="form-check-label" for="is_active">
+                                Set as active semester
+                            </label>
+                            <div class="form-text">Only one semester can be active at a time</div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('manage_semesters') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i>Add Semester
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Set default dates
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    let startMonth, endMonth, year;
+    
+    // Determine semester based on current month
+    if (currentMonth >= 0 && currentMonth <= 4) { // Jan-May: Spring semester
+        startMonth = 0; // January
+        endMonth = 4; // May
+        year = currentYear;
+        document.getElementById('name').value = `Spring ${year}`;
+    } else if (currentMonth >= 5 && currentMonth <= 7) { // Jun-Aug: Summer semester
+        startMonth = 5; // June
+        endMonth = 7; // August
+        year = currentYear;
+        document.getElementById('name').value = `Summer ${year}`;
+    } else { // Sep-Dec: Fall semester
+        startMonth = 8; // September
+        endMonth = 11; // December
+        year = currentYear;
+        document.getElementById('name').value = `Fall ${year}`;
+    }
+    
+    const startDate = new Date(year, startMonth, 1);
+    const endDate = new Date(year, endMonth + 1, 0); // Last day of end month
+    
+    document.getElementById('start_date').value = startDate.toISOString().split('T')[0];
+    document.getElementById('end_date').value = endDate.toISOString().split('T')[0];
+});
+</script>
+{% endblock %}

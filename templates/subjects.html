@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Subjects - Student Attendance Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i class="bi bi-book me-2"></i>
+                Manage Subjects
+            </h1>
+            <div class="btn-group">
+                <a href="{{ url_for('add_subject') }}" class="btn btn-primary">
+                    <i class="bi bi-plus me-1"></i>Add Subject
+                </a>
+                {% if semester %}
+                    <span class="btn btn-outline-primary disabled">{{ semester.name }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if not subjects %}
+    <div class="alert alert-info">
+        <h4 class="alert-heading">No Subjects Added</h4>
+        <p>Start by <a href="{{ url_for('add_subject') }}" class="alert-link">adding your first subject</a> for the current semester.</p>
+        {% if not semester %}
+            <p><strong>Note:</strong> Please <a href="{{ url_for('manage_semesters') }}" class="alert-link">create and activate a semester</a> first.</p>
+        {% endif %}
+    </div>
+{% else %}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Subjects for {{ semester.name }}</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Subject Name</th>
+                            <th>Code</th>
+                            <th>Credits</th>
+                            <th>Total Lectures</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for subject in subjects %}
+                        <tr>
+                            <td>
+                                <div>
+                                    <strong>{{ subject.name }}</strong>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ subject.code }}</span>
+                            </td>
+                            <td>{{ subject.credits }}</td>
+                            <td>{{ subject.total_lectures }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('edit_subject', subject_id=subject.id) }}" 
+                                       class="btn btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" 
+                                            class="btn btn-outline-danger"
+                                            onclick="deleteSubject({{ subject.id }}, '{{ subject.name }}')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">{{ subjects|length }}</h5>
+                    <p class="card-text">Total Subjects</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">{{ subjects|sum(attribute='credits') }}</h5>
+                    <p class="card-text">Total Credits</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">{{ subjects|sum(attribute='total_lectures') }}</h5>
+                    <p class="card-text">Total Lectures</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">{{ (subjects|sum(attribute='total_lectures') * subjects|sum(attribute='credits') / (subjects|length if subjects else 1)) | round | int }}</h5>
+                    <p class="card-text">Avg. per Credit</p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function deleteSubject(subjectId, subjectName) {
+    if (confirm(`Are you sure you want to delete "${subjectName}"?\n\nThis will also delete all attendance records and timetable slots for this subject.`)) {
+        window.location.href = `{{ url_for('delete_subject', subject_id=0) }}`.replace('0', subjectId);
+    }
+}
+</script>
+{% endblock %}

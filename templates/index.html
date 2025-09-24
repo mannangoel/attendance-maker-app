@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Student Attendance Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i class="bi bi-speedometer2 me-2"></i>
+                Dashboard
+            </h1>
+            {% if semester %}
+                <span class="badge bg-primary fs-6">{{ semester.name }}</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if not subjects %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <h4 class="alert-heading">Get Started!</h4>
+                <p>You haven't added any subjects yet. Start by:</p>
+                <ol>
+                    <li><a href="{{ url_for('manage_semesters') }}" class="alert-link">Creating a semester</a></li>
+                    <li><a href="{{ url_for('manage_subjects') }}" class="alert-link">Adding subjects</a></li>
+                    <li><a href="{{ url_for('view_timetable') }}" class="alert-link">Setting up your timetable</a></li>
+                    <li><a href="{{ url_for('mark_attendance') }}" class="alert-link">Marking attendance</a></li>
+                </ol>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <!-- Overall Attendance Card -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white {{ 'bg-success' if aggregate_attendance >= 75 else 'bg-warning' if aggregate_attendance >= 65 else 'bg-danger' }}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">Overall Attendance</h4>
+                            <h2 class="mb-0">{{ aggregate_attendance }}%</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-graph-up fs-1"></i>
+                        </div>
+                    </div>
+                    <small class="text-white-50">
+                        Target: 75% 
+                        {% if aggregate_attendance >= 75 %}
+                            <i class="bi bi-check-circle ms-1"></i>
+                        {% else %}
+                            <i class="bi bi-exclamation-triangle ms-1"></i>
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">Total Subjects</h4>
+                            <h2 class="mb-0">{{ subjects|length }}</h2>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-book fs-1"></i>
+                        </div>
+                    </div>
+                    <small class="text-white-50">Active subjects this semester</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4 class="card-title">Quick Actions</h4>
+                            <div class="btn-group-vertical w-100" role="group">
+                                <a href="{{ url_for('mark_attendance') }}" class="btn btn-light btn-sm">
+                                    <i class="bi bi-check-circle me-1"></i>Mark Today
+                                </a>
+                                <a href="{{ url_for('attendance_report') }}" class="btn btn-outline-light btn-sm">
+                                    <i class="bi bi-graph-up me-1"></i>View Report
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subject-wise Attendance -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-list-check me-2"></i>
+                        Subject-wise Attendance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for subject_info in subjects %}
+                        <div class="col-lg-6 col-xl-4 mb-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div>
+                                            <h6 class="card-title mb-1">{{ subject_info.subject.name }}</h6>
+                                            <small class="text-muted">{{ subject_info.subject.code }}</small>
+                                        </div>
+                                        <span class="badge {{ 'bg-success' if subject_info.attendance_percentage >= 75 else 'bg-warning' if subject_info.attendance_percentage >= 65 else 'bg-danger' }} fs-6">
+                                            {{ subject_info.attendance_percentage }}%
+                                        </span>
+                                    </div>
+                                    
+                                    <!-- Progress Bar -->
+                                    <div class="progress mb-3" style="height: 8px;">
+                                        <div class="progress-bar {{ 'bg-success' if subject_info.attendance_percentage >= 75 else 'bg-warning' if subject_info.attendance_percentage >= 65 else 'bg-danger' }}" 
+                                             style="width: {{ subject_info.attendance_percentage }}%"></div>
+                                    </div>
+                                    
+                                    <!-- Guidance -->
+                                    <div class="guidance-section">
+                                        {% if subject_info.guidance.current_percentage < 75 %}
+                                            {% if subject_info.guidance.lectures_to_attend > 0 %}
+                                                <div class="alert alert-warning py-2 mb-2">
+                                                    <small>
+                                                        <i class="bi bi-exclamation-triangle me-1"></i>
+                                                        <strong>Attend {{ subject_info.guidance.lectures_to_attend }} more lecture(s)</strong>
+                                                        to reach 75%
+                                                    </small>
+                                                </div>
+                                            {% endif %}
+                                        {% else %}
+                                            {% if subject_info.guidance.lectures_can_miss > 0 %}
+                                                <div class="alert alert-success py-2 mb-2">
+                                                    <small>
+                                                        <i class="bi bi-check-circle me-1"></i>
+                                                        <strong>You can miss {{ subject_info.guidance.lectures_can_miss }} lecture(s)</strong>
+                                                        and still maintain 75%
+                                                    </small>
+                                                </div>
+                                            {% else %}
+                                                <div class="alert alert-info py-2 mb-2">
+                                                    <small>
+                                                        <i class="bi bi-info-circle me-1"></i>
+                                                        <strong>Maintain attendance</strong> to keep 75%
+                                                    </small>
+                                                </div>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="row text-center mt-3">
+                                        <div class="col-6">
+                                            <small class="text-muted d-block">Credits</small>
+                                            <strong>{{ subject_info.subject.credits }}</strong>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted d-block">Total Lectures</small>
+                                            <strong>{{ subject_info.subject.total_lectures }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Chart -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-bar-chart me-2"></i>
+                        Attendance Overview
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="attendanceChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% if subjects %}
+<script>
+// Attendance Chart
+const ctx = document.getElementById('attendanceChart').getContext('2d');
+const attendanceChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: [
+            {% for subject_info in subjects %}
+                '{{ subject_info.subject.code }}',
+            {% endfor %}
+        ],
+        datasets: [{
+            label: 'Attendance Percentage',
+            data: [
+                {% for subject_info in subjects %}
+                    {{ subject_info.attendance_percentage }},
+                {% endfor %}
+            ],
+            backgroundColor: [
+                {% for subject_info in subjects %}
+                    '{% if subject_info.attendance_percentage >= 75 %}#198754{% elif subject_info.attendance_percentage >= 65 %}#ffc107{% else %}#dc3545{% endif %}',
+                {% endfor %}
+            ],
+            borderColor: [
+                {% for subject_info in subjects %}
+                    '{% if subject_info.attendance_percentage >= 75 %}#146c43{% elif subject_info.attendance_percentage >= 65 %}#ffca2c{% else %}#b02a37{% endif %}',
+                {% endfor %}
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: {
+                    callback: function(value) {
+                        return value + '%';
+                    }
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return 'Attendance: ' + context.parsed.y + '%';
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Add target line at 75%
+const targetLine = {
+    id: 'targetLine',
+    beforeDraw: function(chart) {
+        const ctx = chart.ctx;
+        const chartArea = chart.chartArea;
+        const yScale = chart.scales.y;
+        
+        const targetValue = 75;
+        const targetY = yScale.getPixelForValue(targetValue);
+        
+        ctx.save();
+        ctx.strokeStyle = '#ff6b6b';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(chartArea.left, targetY);
+        ctx.lineTo(chartArea.right, targetY);
+        ctx.stroke();
+        ctx.restore();
+        
+        // Add label
+        ctx.save();
+        ctx.fillStyle = '#ff6b6b';
+        ctx.font = '12px Arial';
+        ctx.fillText('Target: 75%', chartArea.right - 80, targetY - 5);
+        ctx.restore();
+    }
+};
+
+Chart.register(targetLine);
+</script>
+{% endif %}
+{% endblock %}

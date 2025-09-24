@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Mark Attendance - Student Attendance Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i class="bi bi-check-circle me-2"></i>
+                Mark Attendance
+            </h1>
+            {% if semester %}
+                <span class="badge bg-primary fs-6">{{ semester.name }}</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if not subjects %}
+    <div class="alert alert-info">
+        <h4 class="alert-heading">No Subjects Found</h4>
+        <p>Please <a href="{{ url_for('manage_subjects') }}" class="alert-link">add subjects</a> before marking attendance.</p>
+    </div>
+{% else %}
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="card-title mb-0">Attendance for</h5>
+                        </div>
+                        <div class="col-auto">
+                            <!-- Date Selector -->
+                            <form method="GET" class="d-flex align-items-center">
+                                <input type="date" 
+                                       name="date" 
+                                       value="{{ selected_date }}" 
+                                       class="form-control form-control-sm"
+                                       onchange="this.form.submit()">
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('save_attendance') }}">
+                        <input type="hidden" name="date" value="{{ selected_date }}">
+                        
+                        <div class="row">
+                            {% for subject in subjects %}
+                                <input type="hidden" name="subject_ids" value="{{ subject.id }}">
+                                <div class="col-12 mb-4">
+                                    <div class="card border-0 shadow-sm">
+                                        <div class="card-body">
+                                            <div class="row align-items-center">
+                                                <div class="col-md-6">
+                                                    <h6 class="card-title mb-1">{{ subject.name }}</h6>
+                                                    <small class="text-muted">{{ subject.code }} • {{ subject.credits }} Credits</small>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="form-check form-switch">
+                                                        <input class="form-check-input" 
+                                                               type="checkbox" 
+                                                               name="attended_{{ subject.id }}" 
+                                                               id="attended_{{ subject.id }}"
+                                                               {% if attendance_data[subject.id] and attendance_data[subject.id].attended %}checked{% endif %}>
+                                                        <label class="form-check-label" for="attended_{{ subject.id }}">
+                                                            <span class="badge bg-success" id="status_{{ subject.id }}" style="display: {% if attendance_data[subject.id] and attendance_data[subject.id].attended %}inline{% else %}none{% endif %};">
+                                                                Present
+                                                            </span>
+                                                            <span class="badge bg-danger" id="status_absent_{{ subject.id }}" style="display: {% if not attendance_data[subject.id] or not attendance_data[subject.id].attended %}inline{% else %}none{% endif %};">
+                                                                Absent
+                                                            </span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <input type="text" 
+                                                           class="form-control form-control-sm" 
+                                                           name="notes_{{ subject.id }}" 
+                                                           placeholder="Notes (optional)"
+                                                           value="{% if attendance_data[subject.id] %}{{ attendance_data[subject.id].notes or '' }}{% endif %}">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-1"></i>
+                                Save Attendance
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Stats Sidebar -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="bi bi-graph-up me-1"></i>
+                        Quick Stats
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted">Selected Date</small>
+                        <h6>{{ selected_date }}</h6>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Total Subjects</small>
+                        <h6>{{ subjects|length }}</h6>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Marked Present</small>
+                        <h6 id="present-count">
+                            {{ attendance_data.values() | selectattr('attended') | list | length }}
+                        </h6>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Marked Absent</small>
+                        <h6 id="absent-count">
+                            {{ subjects|length - (attendance_data.values() | selectattr('attended') | list | length) }}
+                        </h6>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tips Card -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="bi bi-lightbulb me-1"></i>
+                        Tips
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle text-success me-2"></i>
+                            <small>Mark attendance daily for accurate tracking</small>
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-calendar-week text-primary me-2"></i>
+                            <small>You can mark attendance for past dates too</small>
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-pencil text-info me-2"></i>
+                            <small>Add notes for special circumstances</small>
+                        </li>
+                        <li>
+                            <i class="bi bi-target text-warning me-2"></i>
+                            <small>Aim for 75% attendance in each subject</small>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Update attendance counters when checkboxes change
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('input[type="checkbox"][name^="attended_"]');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const subjectId = this.name.split('_')[1];
+            const statusPresent = document.getElementById(`status_${subjectId}`);
+            const statusAbsent = document.getElementById(`status_absent_${subjectId}`);
+            const presentCount = document.getElementById('present-count');
+            const absentCount = document.getElementById('absent-count');
+            
+            if (this.checked) {
+                statusPresent.style.display = 'inline';
+                statusAbsent.style.display = 'none';
+            } else {
+                statusPresent.style.display = 'none';
+                statusAbsent.style.display = 'inline';
+            }
+            
+            // Update counters
+            const totalPresent = document.querySelectorAll('input[type="checkbox"][name^="attended_"]:checked').length;
+            const totalSubjects = checkboxes.length;
+            
+            presentCount.textContent = totalPresent;
+            absentCount.textContent = totalSubjects - totalPresent;
+        });
+    });
+});
+</script>
+{% endblock %}

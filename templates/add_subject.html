@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Add Subject - Student Attendance Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Add New Subject
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Subject Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" required
+                               placeholder="e.g., Introduction to Computer Science">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="code" class="form-label">Subject Code *</label>
+                        <input type="text" class="form-control" id="code" name="code" required
+                               placeholder="e.g., CS101" style="text-transform: uppercase;">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="credits" class="form-label">Credits *</label>
+                                <select class="form-select" id="credits" name="credits" required>
+                                    <option value="">Select Credits</option>
+                                    <option value="1">1 Credit</option>
+                                    <option value="2">2 Credits</option>
+                                    <option value="3" selected>3 Credits</option>
+                                    <option value="4">4 Credits</option>
+                                    <option value="5">5 Credits</option>
+                                    <option value="6">6 Credits</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="total_lectures" class="form-label">Total Lectures *</label>
+                                <input type="number" class="form-control" id="total_lectures" 
+                                       name="total_lectures" value="60" min="1" max="200" required>
+                                <div class="form-text">Expected number of lectures for the semester</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <small>
+                            <i class="bi bi-info-circle me-1"></i>
+                            You can update these details later if needed. The total lectures help calculate attendance percentages accurately.
+                        </small>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('manage_subjects') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i>Add Subject
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Auto-uppercase subject code
+document.getElementById('code').addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+});
+</script>
+{% endblock %}
