@@ -88,7 +88,7 @@ def calculate_attendance_percentage(subject_id):
 
 def calculate_aggregate_attendance():
     """Calculate overall attendance percentage across all subjects"""
-    subjects = Subject.query.join(Semester).filter(Semester.is_active == True).all()
+    subjects = Subject.query.join(Semester).filter(Semester.is_active == True, Semester.user_id == current_user.id).all()
     if not subjects:
         return 0.0
     
@@ -140,6 +140,9 @@ def calculate_lectures_needed(subject_id, target_percentage=75):
 # Authentication Routes
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+        
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -158,6 +161,9 @@ def login():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+        
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email']
@@ -199,6 +205,7 @@ def index():
     """Dashboard showing overview of attendance"""
     active_semester = Semester.query.filter_by(is_active=True, user_id=current_user.id).first()
     if not active_semester:
+        flash('Welcome! Please create your first semester to get started.', 'info')
         return redirect(url_for('manage_semesters'))
     
     subjects = Subject.query.filter_by(semester_id=active_semester.id).all()
