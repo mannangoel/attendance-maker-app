@@ -11,20 +11,6 @@ A comprehensive web application for students to track their attendance, manage s
 
 🌐 **[View Application Locally](http://127.0.0.1:5001)** *(Run `python app.py` first)*
 
-## 📸 Screenshots
-
-### Dashboard
-![Dashboard](screenshots/dashboard.png)
-*Real-time attendance overview with smart guidance*
-
-### Attendance Marking
-![Attendance](screenshots/attendance.png)
-*Easy daily attendance marking interface*
-
-### Analytics & Reports
-![Reports](screenshots/reports.png)
-*Detailed subject-wise analysis and trends*
-
 ## Features
 
 ### 📚 Subject Management
