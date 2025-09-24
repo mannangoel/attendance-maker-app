@@ -9,15 +9,7 @@ A comprehensive web application for students to track their attendance, manage s
 
 ## 🚀 Live Demo
 
-🌐 **[View Live Application](https://attendance-maker-app.herokuapp.com)** *(Deploy to get live link)*
-
-> **Note**: To get a live demo link, you can deploy this application to:
-> - [Heroku](https://heroku.com) (Free tier available)
-> - [Railway](https://railway.app) (Free deployments)
-> - [Render](https://render.com) (Free static sites)
-> - [PythonAnywhere](https://pythonanywhere.com) (Free Python hosting)
->
-> After deployment, update this README with your actual live URL.
+🌐 **[View Application Locally](http://127.0.0.1:5001)** *(Run `python app.py` first)*
 
 ## 📸 Screenshots
 
@@ -105,54 +97,6 @@ A comprehensive web application for students to track their attendance, manage s
 
 5. **Access the application**
    Open your browser and go to: `http://localhost:5001`
-
-## 🌐 Deployment
-
-### Deploy to Heroku (Recommended)
-
-1. **Create a Heroku account** at [heroku.com](https://heroku.com)
-
-2. **Install Heroku CLI** and login:
-   ```bash
-   heroku login
-   ```
-
-3. **Create a Heroku app**:
-   ```bash
-   heroku create attendance-maker-app-[your-username]
-   ```
-
-4. **Add a Procfile** (create this file in your project root):
-   ```
-   web: python app.py
-   ```
-
-5. **Deploy**:
-   ```bash
-   git add .
-   git commit -m "Add Heroku deployment config"
-   git push heroku main
-   ```
-
-6. **Open your app**:
-   ```bash
-   heroku open
-   ```
-
-### Deploy to Railway
-
-1. Go to [railway.app](https://railway.app)
-2. Connect your GitHub repository
-3. Railway will auto-deploy your Flask app
-4. Get your live URL from the Railway dashboard
-
-### Deploy to Render
-
-1. Go to [render.com](https://render.com)
-2. Connect your GitHub repository
-3. Select "Web Service"
-4. Use build command: `pip install -r requirements.txt`
-5. Use start command: `python app.py`
 
 ## Getting Started
 
