@@ -13,6 +13,12 @@ A comprehensive web application for students to track their attendance, manage s
 
 ## Features
 
+### 🔐 User Authentication & Privacy
+- **Secure user registration and login** with password hashing
+- **Private data isolation** - each user sees only their own data
+- **Session management** with secure logout functionality
+- **User-specific dashboards** and attendance tracking
+
 ### 📚 Subject Management
 - Add, edit, and delete subjects for each semester
 - Track credits and total lectures per subject
@@ -84,34 +90,19 @@ A comprehensive web application for students to track their attendance, manage s
 5. **Access the application**
    Open your browser and go to: `http://localhost:5001`
 
+6. **Create your account**
+   - Click "Create Account" to register
+   - Login with your credentials
+   - Start tracking your attendance!
+
 ## Getting Started
 
-### Step 1: Create a Semester
-1. Go to "Manage" → "Semesters"
-2. Click "Add Semester"
-3. Enter semester name and dates
-4. Set as active semester
-
-### Step 2: Add Subjects
-1. Go to "Manage" → "Subjects"
-2. Click "Add Subject"
-3. Enter subject details (name, code, credits, total lectures)
-
-### Step 3: Set up Timetable (Optional)
-1. Go to "Timetable"
-2. Click "Add Slot"
-3. Select subject, day, time, and room
-
-### Step 4: Mark Attendance
-1. Go to "Mark Attendance"
-2. Select date (defaults to today)
-3. Mark present/absent for each subject
-4. Add notes if needed
-
-### Step 5: View Reports
-1. Dashboard shows overall statistics
-2. "Reports" shows detailed subject-wise analysis
-3. Charts visualize attendance trends
+### First Time Setup
+1. **Register an account** - Create your personal account
+2. **Create a semester** - Add your current semester (e.g., "Fall 2024")
+3. **Add subjects** - Enter your course details with expected lecture counts
+4. **Set up timetable** (optional) - Organize your weekly schedule
+5. **Start tracking** - Mark daily attendance and monitor your progress
 
 ## Key Calculations
 
